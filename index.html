@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+<html lang="vi" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Badminton Club Manager</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#10b981', // Emerald 500
+                        danger: '#ef4444', // Red 500
+                        darkbg: '#111827',
+                        darkcard: '#1f2937',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Custom UI Tweaks */
+        body { -webkit-tap-highlight-color: transparent; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        /* Toggle Switch */
+        .toggle-checkbox:checked { right: 0; border-color: #10b981; }
+        .toggle-checkbox:checked + .toggle-label { background-color: #10b981; }
+        .toggle-checkbox { right: 0; z-index: 1; border-color: #e5e7eb; transition: all 0.3s; }
+        .toggle-label { background-color: #e5e7eb; transition: all 0.3s; }
+
+        /* Tournament Bracket Lines */
+        .bracket-node { position: relative; }
+        .bracket-node::before {
+            content: ''; position: absolute; right: -1rem; top: 50%; width: 1rem; height: 2px;
+            background: #9ca3af; display: none;
+        }
+        .bracket-node:not(:last-child)::before { display: block; }
+
+        .selected-pair { border: 2px dashed #10b981; opacity: 0.7; }
+        
+        /* Date picker custom style */
+        ::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.6; }
+        .dark ::-webkit-calendar-picker-indicator { filter: invert(1); }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900 dark:bg-darkbg dark:text-gray-100 min-h-screen flex flex-col pb-20 transition-colors duration-200">
+
+    <!-- Header (Global Context) -->
+    <header class="bg-white dark:bg-darkcard shadow-sm px-4 py-2 flex justify-between items-center sticky top-0 z-10 transition-colors duration-200">
+        <div class="flex flex-col">
+            <h1 class="text-xl font-bold text-primary flex items-center">
+                <i class="fa-solid fa-shuttlecock mr-2"></i>ClubManager
+                <i id="cloudSyncIcon" class="fa-solid fa-cloud text-[10px] ml-2 text-gray-400" title="Trạng thái Cloud"></i>
+            </h1>
+            <!-- Global Date Picker -->
+            <div class="flex items-center gap-1 mt-0.5">
+                <i class="fa-regular fa-calendar text-primary text-xs"></i>
+                <input type="date" id="globalDate" class="text-xs font-bold bg-transparent text-gray-700 dark:text-gray-300 outline-none cursor-pointer border-b border-dashed border-gray-300 dark:border-gray-600 focus:border-primary">
+            </div>
+        </div>
+        <button id="themeToggle" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 w-12 h-12 flex items-center justify-center">
+            <i class="fa-solid fa-moon text-xl dark:hidden"></i>
+            <i class="fa-solid fa-sun text-xl hidden dark:block text-yellow-400"></i>
+        </button>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-4 overflow-y-auto">
+        <!-- TAB 1: MEMBERS -->
+        <section id="tab-members" class="tab-content active space-y-4">
+            <div class="flex justify-between items-center">
+                <h2 class="text-lg font-bold"><i class="fa-solid fa-users mr-2"></i>Danh sách thành viên</h2>
+                <button id="btnAddMember" class="bg-primary text-white px-4 py-2 rounded-lg font-semibold min-h-[48px] shadow-sm active:scale-95 transition-transform">
+                    <i class="fa-solid fa-plus mr-1"></i> Thêm
+                </button>
+            </div>
+            
+            <div class="flex gap-2">
+                <div class="bg-white dark:bg-darkcard p-3 rounded-xl shadow-sm flex-1 text-center">
+                    <div class="text-xs text-gray-500 dark:text-gray-400">Tổng danh sách</div>
+                    <div id="statTotal" class="text-xl font-bold">0</div>
+                </div>
+                <div class="bg-green-50 dark:bg-green-900/20 p-3 rounded-xl shadow-sm flex-1 text-center border border-green-100 dark:border-green-800">
+                    <div class="text-xs text-green-600 dark:text-green-400">Có mặt hôm nay</div>
+                    <div id="statPresent" class="text-xl font-bold text-green-600 dark:text-green-400">0</div>
+                </div>
+            </div>
+
+            <div id="memberList" class="space-y-3">
+                <!-- Members rendered here by JS -->
+            </div>
+        </section>
+
+        <!-- TAB 2: MATCHMAKING -->
+        <section id="tab-matchmaking" class="tab-content space-y-4">
+            <div class="flex justify-between items-center">
+                <h2 class="text-lg font-bold"><i class="fa-solid fa-people-arrows mr-2"></i>Cặp Đấu Giải</h2>
+                <div class="text-sm bg-gray-200 dark:bg-gray-700 px-3 py-1 rounded-full" id="matchPresentCount">0 người</div>
+            </div>
+
+            <p class="text-sm text-gray-600 dark:text-gray-300">Tính năng này dùng để gom cặp <b>chuẩn bị cho Tab Giải đấu</b> (bình thường đánh tự do không cần dùng).</p>
+
+            <div class="grid grid-cols-2 gap-3">
+                <button id="btnRandomPairs" class="bg-blue-600 text-white rounded-lg font-semibold min-h-[48px] shadow-sm active:scale-95 transition-transform flex flex-col items-center justify-center">
+                    <span><i class="fa-solid fa-dice mr-1"></i> Random</span>
+                    <span class="text-[10px] font-normal opacity-80">Trộn ngẫu nhiên</span>
+                </button>
+                <button id="btnBalancePairs" class="bg-primary text-white rounded-lg font-semibold min-h-[48px] shadow-sm active:scale-95 transition-transform flex flex-col items-center justify-center">
+                    <span><i class="fa-solid fa-scale-balanced mr-1"></i> Cân bằng</span>
+                    <span class="text-[10px] font-normal opacity-80">Mạnh cặp Yếu</span>
+                </button>
+            </div>
+            <p class="text-xs text-gray-500 dark:text-gray-400 text-center italic">* Mẹo: Sau khi xếp, có thể chạm vào người này rồi chạm vào người khác để <b>ĐỔI CHỖ (Swap)</b> tự chia theo ý thích.</p>
+
+            <div id="pairsList" class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <!-- Pairs rendered here -->
+            </div>
+        </section>
+
+        <!-- TAB 3: TOURNAMENT -->
+        <section id="tab-tournament" class="tab-content space-y-4">
+            <h2 class="text-lg font-bold"><i class="fa-solid fa-trophy mr-2"></i>Giải Đấu</h2>
+            
+            <div class="flex bg-gray-200 dark:bg-gray-700 p-1 rounded-xl">
+                <button id="btnModeKnockout" class="flex-1 py-2 rounded-lg text-sm font-semibold min-h-[48px] bg-white dark:bg-darkcard shadow text-primary transition-all">Sơ đồ nhánh</button>
+                <button id="btnMode110" class="flex-1 py-2 rounded-lg text-sm font-semibold min-h-[48px] text-gray-500 dark:text-gray-300 transition-all">Đồng đội 110đ</button>
+            </div>
+
+            <!-- View: Knockout -->
+            <div id="viewKnockout" class="space-y-4">
+                <div class="flex gap-2 mb-2">
+                    <select id="selectBestOf" class="flex-1 bg-white dark:bg-darkcard border border-gray-200 dark:border-gray-700 rounded-lg p-2 outline-none font-bold">
+                        <option value="1">Đánh 1 Set (BO1)</option>
+                        <option value="3">Đánh 3 Set (BO3)</option>
+                    </select>
+                    <button id="btnGenerateBracket" class="flex-[2] bg-primary text-white rounded-lg font-semibold min-h-[48px] shadow-sm active:scale-95 transition-transform">
+                        <i class="fa-solid fa-sitemap mr-2"></i> Tạo Sơ Đồ
+                    </button>
+                </div>
+                <div id="bracketContainer" class="flex flex-col gap-4 overflow-x-auto pb-4">
+                    <!-- Bracket nodes rendered here -->
+                </div>
+            </div>
+
+            <!-- View: 110 Points -->
+            <div id="view110" class="hidden space-y-6">
+                <div class="bg-white dark:bg-darkcard p-6 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-800 text-center relative overflow-hidden">
+                    <div class="absolute inset-0 bg-green-50 dark:bg-green-900/10 z-0" id="progressBar110" style="width: 0%; transition: width 0.5s ease;"></div>
+                    <div class="relative z-10 flex justify-between items-center">
+                        <div class="flex-1">
+                            <div class="text-sm text-gray-500 dark:text-gray-400">Đội A</div>
+                            <div class="text-6xl font-black text-blue-600" id="score110A">0</div>
+                            <div class="mt-4 flex justify-center gap-2">
+                                <button class="bg-gray-200 dark:bg-gray-700 w-12 h-12 rounded-full text-xl font-bold active:bg-gray-300" onclick="App.update110(-1, 'A')">-</button>
+                                <button class="bg-blue-600 text-white w-12 h-12 rounded-full text-xl font-bold shadow-md active:bg-blue-700" onclick="App.update110(1, 'A')">+</button>
+                            </div>
+                        </div>
+                        <div class="text-2xl font-bold text-gray-300 dark:text-gray-600 mx-2">VS</div>
+                        <div class="flex-1">
+                            <div class="text-sm text-gray-500 dark:text-gray-400">Đội B</div>
+                            <div class="text-6xl font-black text-danger" id="score110B">0</div>
+                            <div class="mt-4 flex justify-center gap-2">
+                                <button class="bg-gray-200 dark:bg-gray-700 w-12 h-12 rounded-full text-xl font-bold active:bg-gray-300" onclick="App.update110(-1, 'B')">-</button>
+                                <button class="bg-danger text-white w-12 h-12 rounded-full text-xl font-bold shadow-md active:bg-red-700" onclick="App.update110(1, 'B')">+</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-2">
+                    <button id="btnReset110" class="flex-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg font-semibold min-h-[48px] active:scale-95 transition-transform">Reset</button>
+                    <button id="btnSwitchPair110" class="flex-[2] bg-primary text-white rounded-lg font-semibold min-h-[48px] shadow-md active:scale-95 transition-transform">
+                        <i class="fa-solid fa-rotate mr-2"></i> Chuyển Cặp (Lưu)
+                    </button>
+                </div>
+
+                <div class="bg-white dark:bg-darkcard rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
+                    <div class="flex justify-between items-end mb-3 border-b dark:border-gray-700 pb-2">
+                        <h3 class="text-sm font-bold">Danh sách 10 trận thi đấu</h3>
+                        <button id="btnAutoFill110" class="text-xs bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 px-3 py-1.5 rounded-lg shadow-sm font-bold active:scale-95 transition-transform"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>Tự động chia</button>
+                    </div>
+                    <div id="lineup110Container" class="space-y-2">
+                        <!-- Rendered by JS -->
+                    </div>
+                </div>
+
+                <div class="bg-white dark:bg-darkcard rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
+                    <h3 class="text-sm font-bold mb-3 border-b dark:border-gray-700 pb-2">Lịch sử các cặp đã đánh</h3>
+                    <ul id="history110List" class="space-y-2 text-sm">
+                        <!-- History rendered here -->
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 4: BILLING -->
+        <section id="tab-billing" class="tab-content space-y-4">
+            <h2 class="text-lg font-bold"><i class="fa-solid fa-file-invoice-dollar mr-2"></i>Kế toán & Thu tiền</h2>
+            <p class="text-xs text-gray-500 mb-2 italic">* Số liệu đang tính theo ngày chọn ở trên cùng.</p>
+
+            <div class="bg-white dark:bg-darkcard rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800 space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 mb-1">Tiền sân (VNĐ)</label>
+                        <input type="number" id="feeCourt" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded p-2 min-h-[48px] text-right focus:ring-2 focus:ring-primary outline-none" value="0">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 mb-1">Tiền cầu (VNĐ)</label>
+                        <input type="number" id="feeShuttle" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded p-2 min-h-[48px] text-right focus:ring-2 focus:ring-primary outline-none" value="0">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 mb-1">Nước nôi (VNĐ)</label>
+                        <input type="number" id="feeWater" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded p-2 min-h-[48px] text-right focus:ring-2 focus:ring-primary outline-none" value="0">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 mb-1">Khác (VNĐ)</label>
+                        <input type="number" id="feeOther" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded p-2 min-h-[48px] text-right focus:ring-2 focus:ring-primary outline-none" value="0">
+                    </div>
+                </div>
+                
+                <div class="border-t border-dashed border-gray-300 dark:border-gray-600 pt-4 flex justify-between items-center">
+                    <div>
+                        <div class="text-sm text-gray-500">Tổng chi: <span id="billTotal" class="font-bold text-gray-800 dark:text-white">0</span>đ</div>
+                        <div class="text-sm text-gray-500">Chia cho: <span id="billPeopleCount" class="font-bold text-gray-800 dark:text-white">0</span> người (Có mặt)</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-xs text-primary font-bold">MỖI NGƯỜI ĐÓNG:</div>
+                        <div id="billPerPerson" class="text-2xl font-black text-primary">0đ</div>
+                    </div>
+                </div>
+                <button id="btnCalcBill" class="w-full bg-gray-800 dark:bg-gray-600 text-white rounded-lg font-semibold min-h-[48px] active:scale-95 transition-transform">Tính Toán</button>
+            </div>
+
+            <div class="bg-white dark:bg-darkcard rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
+                <h3 class="text-sm font-bold mb-3">Danh sách thu tiền (Chỉ người có mặt)</h3>
+                <div id="billingList" class="space-y-2">
+                    <!-- Billing checklist rendered here -->
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="bg-white dark:bg-darkcard border-t border-gray-200 dark:border-gray-800 fixed bottom-0 w-full flex justify-around pb-safe z-20">
+        <button class="nav-btn flex-1 py-3 flex flex-col items-center text-primary transition-colors" data-target="tab-members">
+            <i class="fa-solid fa-users text-xl mb-1"></i>
+            <span class="text-[10px] font-semibold">Điểm danh</span>
+        </button>
+        <button class="nav-btn flex-1 py-3 flex flex-col items-center text-gray-400 dark:text-gray-500 hover:text-primary transition-colors" data-target="tab-matchmaking">
+            <i class="fa-solid fa-people-arrows text-xl mb-1"></i>
+            <span class="text-[10px] font-semibold">Cặp Đấu</span>
+        </button>
+        <button class="nav-btn flex-1 py-3 flex flex-col items-center text-gray-400 dark:text-gray-500 hover:text-primary transition-colors" data-target="tab-tournament">
+            <i class="fa-solid fa-trophy text-xl mb-1"></i>
+            <span class="text-[10px] font-semibold">Giải Đấu</span>
+        </button>
+        <button class="nav-btn flex-1 py-3 flex flex-col items-center text-gray-400 dark:text-gray-500 hover:text-primary transition-colors" data-target="tab-billing">
+            <i class="fa-solid fa-file-invoice-dollar text-xl mb-1"></i>
+            <span class="text-[10px] font-semibold">Kế toán</span>
+        </button>
+    </nav>
+
+    <!-- Score Modal (Fullscreen 50/50) -->
+    <div id="scoreModal" class="fixed inset-0 z-50 bg-black/90 hidden flex-col">
+        <div class="flex justify-between items-center p-4 text-white">
+            <h3 class="text-lg font-bold">Cập nhật điểm</h3>
+            <div id="modalSetTabs" class="flex gap-2 hidden">
+                <button class="px-3 py-1 rounded bg-primary text-white text-sm font-bold" onclick="App.switchSet(0)">S1</button>
+                <button class="px-3 py-1 rounded bg-gray-600 text-white text-sm font-bold" onclick="App.switchSet(1)">S2</button>
+                <button class="px-3 py-1 rounded bg-gray-600 text-white text-sm font-bold" onclick="App.switchSet(2)">S3</button>
+            </div>
+            <button id="btnCloseModal" class="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center text-xl active:bg-gray-700">&times;</button>
+        </div>
+        <div class="text-center text-gray-400 text-sm mb-2" id="modalCurrentSetLabel">Set 1</div>
+        <div class="flex-1 flex" id="modalScoreContent">
+            <!-- Left Side -->
+            <div class="flex-1 flex flex-col items-center justify-center border-r border-gray-700 active:bg-white/10" onclick="App.updateMatchScore(1)">
+                <div class="text-xl text-gray-300 mb-4" id="modalName1">Đội 1</div>
+                <div class="text-8xl font-black text-white" id="modalScore1">0</div>
+                <div class="text-sm text-gray-500 mt-4">(Chạm để +1)</div>
+            </div>
+            <!-- Right Side -->
+            <div class="flex-1 flex flex-col items-center justify-center active:bg-white/10" onclick="App.updateMatchScore(2)">
+                <div class="text-xl text-gray-300 mb-4" id="modalName2">Đội 2</div>
+                <div class="text-8xl font-black text-white" id="modalScore2">0</div>
+                <div class="text-sm text-gray-500 mt-4">(Chạm để +1)</div>
+            </div>
+        </div>
+        <div class="p-4 flex gap-2">
+            <button class="flex-1 bg-gray-700 text-white min-h-[48px] rounded-lg font-bold" onclick="App.updateMatchScore(1, -1)">-1 Đội 1</button>
+            <button class="flex-1 bg-gray-700 text-white min-h-[48px] rounded-lg font-bold" onclick="App.updateMatchScore(2, -1)">-1 Đội 2</button>
+        </div>
+    </div>
+
+    <!-- MAIN JAVASCRIPT APP -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- CẤU HÌNH FIREBASE CHO GITHUB PAGES ---
+        const myFirebaseConfig = {
+            apiKey: "AIzaSyDGOAT-rWoAr4fJx83wt1JKcssWajscqPI",
+            authDomain: "kcqbadminton.firebaseapp.com",
+            projectId: "kcqbadminton",
+            storageBucket: "kcqbadminton.firebasestorage.app",
+            messagingSenderId: "359683453820",
+            appId: "1:359683453820:web:d2617f6b3991db6541eaf9",
+            measurementId: "G-XEJN7H949V"
+        };
+
+        let firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : myFirebaseConfig;
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'badminton-club-manager';
+
+        // ==========================================
+        // MODULE 1: STATE MANAGEMENT (Cloud & Session Based)
+        // ==========================================
+        class Store {
+            constructor() {
+                const today = new Date().toISOString().split('T')[0];
+                const defaultState = {
+                    theme: 'light', currentDate: today,
+                    members: [
+                        { id: '1', name: 'Lão Đại', gender: 'M', level: 'A' },
+                        { id: '2', name: 'Nhị Ca', gender: 'M', level: 'B' },
+                        { id: '3', name: 'Tiểu Muội', gender: 'F', level: 'C' },
+                        { id: '4', name: 'Tân Binh', gender: 'M', level: 'D' }
+                    ],
+                    daily: { [today]: this.createEmptyDailyRecord() }
+                };
+
+                let savedState = localStorage.getItem('badminton_store');
+                if (savedState) {
+                    try {
+                        savedState = JSON.parse(savedState);
+                        if (!savedState.daily) {
+                            savedState.currentDate = today; savedState.daily = {};
+                            savedState.daily[today] = this.createEmptyDailyRecord();
+                        }
+                        this.state = savedState;
+                    } catch(e) { this.state = defaultState; }
+                } else {
+                    this.state = defaultState;
+                }
+
+                this.ensureDaily(this.state.currentDate);
+                this.listeners = [];
+                this.applyTheme(this.state.theme);
+                this.userId = null;
+                this.initCloudSync();
+            }
+
+            async initCloudSync() {
+                const syncIcon = document.getElementById('cloudSyncIcon');
+                if(syncIcon) syncIcon.className = 'fa-solid fa-arrows-rotate fa-spin text-[10px] ml-2 text-blue-400';
+
+                const initAuth = async () => {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                };
+
+                await initAuth();
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        this.userId = user.uid;
+                        this.listenToFirestore();
+                    }
+                });
+            }
+
+            listenToFirestore() {
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'club_state', 'main');
+                
+                onSnapshot(docRef, (snapshot) => {
+                    const syncIcon = document.getElementById('cloudSyncIcon');
+                    if (snapshot.exists()) {
+                        let data = snapshot.data();
+                        
+                        // BẢN VÁ FIREBASE: Gỡ bọc Object trả lại mảng 2 chiều
+                        for (let date in data.daily) {
+                            if (data.daily[date].pairs) {
+                                data.daily[date].pairs = data.daily[date].pairs.map(p => p.players ? p.players : p);
+                            }
+                        }
+
+                        this.state = data;
+                        this.ensureDaily(this.state.currentDate);
+                        localStorage.setItem('badminton_store', JSON.stringify(this.state));
+                        this.notifyUI();
+                        if(syncIcon) syncIcon.className = 'fa-solid fa-cloud-check text-[10px] ml-2 text-green-500';
+                    } else {
+                        this.pushToFirestore();
+                    }
+                }, (error) => {
+                    console.error("Lỗi đồng bộ Cloud:", error);
+                    const syncIcon = document.getElementById('cloudSyncIcon');
+                    if(syncIcon) syncIcon.className = 'fa-solid fa-cloud-xmark text-[10px] ml-2 text-red-500';
+                });
+            }
+
+            async pushToFirestore() {
+                if (!this.userId) return;
+                const syncIcon = document.getElementById('cloudSyncIcon');
+                if(syncIcon) syncIcon.className = 'fa-solid fa-arrows-rotate fa-spin text-[10px] ml-2 text-blue-400';
+                
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'club_state', 'main');
+                try {
+                    const cleanState = JSON.parse(JSON.stringify(this.state));
+
+                    // BẢN VÁ FIREBASE: Bọc mảng lồng để đẩy lên Database
+                    for (let date in cleanState.daily) {
+                        if (cleanState.daily[date].pairs) {
+                            cleanState.daily[date].pairs = cleanState.daily[date].pairs.map(pair => ({ players: pair }));
+                        }
+                    }
+
+                    await setDoc(docRef, cleanState);
+                    if(syncIcon) syncIcon.className = 'fa-solid fa-cloud-check text-[10px] ml-2 text-green-500';
+                } catch (e) {
+                    console.error("Lỗi đẩy dữ liệu:", e);
+                    if(syncIcon) syncIcon.className = 'fa-solid fa-cloud-xmark text-[10px] ml-2 text-red-500';
+                }
+            }
+
+            createEmptyDailyRecord() {
+                return {
+                    attendance: {}, payments: {}, fees: { court: 0, shuttle: 0, water: 0, other: 0 },
+                    pairs: [], tournament: { matches: [], mode110: { scoreA: 0, scoreB: 0, history: [], lineup: Array(10).fill({a: '', b: ''}) } }
+                };
+            }
+
+            ensureDaily(date) {
+                if (!this.state.daily[date]) this.state.daily[date] = this.createEmptyDailyRecord();
+            }
+
+            changeDate(newDate) {
+                if(!newDate) return;
+                this.ensureDaily(newDate);
+                this.state.currentDate = newDate;
+                this.notify();
+            }
+
+            subscribe(listener) { this.listeners.push(listener); }
+
+            notify() {
+                localStorage.setItem('badminton_store', JSON.stringify(this.state));
+                this.pushToFirestore(); 
+                this.notifyUI(); 
+            }
+
+            notifyUI() { this.listeners.forEach(listener => listener(this.state)); }
+            get() { return this.state; }
+            getDaily() { return this.state.daily[this.state.currentDate]; }
+
+            update(mutation) {
+                this.state = { ...this.state, ...mutation };
+                this.notify();
+            }
+
+            updateDaily(mutation) {
+                const date = this.state.currentDate;
+                this.state.daily[date] = { ...this.state.daily[date], ...mutation };
+                this.notify();
+            }
+
+            applyTheme(theme) {
+                const root = document.documentElement;
+                if (theme === 'dark') root.classList.add('dark');
+                else root.classList.remove('dark');
+            }
+        }
+
+        // ==========================================
+        // MODULE 2: BUSINESS LOGIC & ALGORITHMS (UPGRADED)
+        // ==========================================
+        const Logic = {
+            weightMap: { 'A': 4, 'B': 3, 'C': 2, 'D': 1 },
+
+            // Hàm phân loại Cặp (MD = Nam/Nam, WD = Nữ/Nữ, XD = Nam/Nữ)
+            getPairType(pair) {
+                if (!pair || !pair[0] || !pair[1]) return 'SINGLE';
+                const g1 = pair[0].gender;
+                const g2 = pair[1].gender;
+                if (g1 === 'M' && g2 === 'M') return 'MD'; // Đôi Nam
+                if (g1 === 'F' && g2 === 'F') return 'WD'; // Đôi Nữ
+                return 'XD'; // Đôi Nam Nữ
+            },
+
+            // Hàm tính điểm sức mạnh của cặp
+            getPairStrength(pair) {
+                if (!pair || !pair[0]) return 0;
+                let s1 = this.weightMap[pair[0].level] || 1;
+                let s2 = pair[1] ? (this.weightMap[pair[1].level] || 1) : 0;
+                return s1 + s2;
+            },
+
+            randomPairs(members) {
+                let pool = [...members].sort(() => Math.random() - 0.5);
+                let pairs = [];
+                while (pool.length >= 2) pairs.push([pool.shift(), pool.shift()]);
+                if (pool.length) pairs.push([pool.shift(), null]);
+                return pairs;
+            },
+
+            balancePairs(members) {
+                // Sắp xếp người chơi từ mạnh đến yếu
+                let pool = [...members].sort((a, b) => this.weightMap[b.level] - this.weightMap[a.level]);
+                let pairs = [];
+                // Bốc 1 người mạnh nhất ghép với 1 người yếu nhất (để cân bằng sức mạnh tổng)
+                while (pool.length >= 2) {
+                    pairs.push([pool.shift(), pool.pop()]);
+                }
+                if (pool.length) pairs.push([pool.shift(), null]);
+                return pairs;
+            },
+
+            generateBracket(pairs, bestOf = 1) {
+                // 1. Phân loại và phân tích từng cặp
+                let categorized = pairs.map(p => ({
+                    players: p,
+                    type: this.getPairType(p),
+                    strength: this.getPairStrength(p)
+                }));
+
+                // 2. Sắp xếp để những cặp Cùng Thể Loại & Cùng Sức Mạnh đứng gần nhau
+                categorized.sort((a, b) => {
+                    if (a.type !== b.type) return a.type.localeCompare(b.type); // Gom Nam-Nam, Nữ-Nữ lại với nhau
+                    return b.strength - a.strength; // Gom mạnh với mạnh
+                });
+
+                // 3. Ghép cặp liền kề vào 1 trận (Đảm bảo Nam-Nam đánh với Nam-Nam)
+                let matches = [];
+                for (let i = 0; i < categorized.length; i += 2) {
+                    let team1 = categorized[i].players || [];
+                    let team2 = categorized[i+1] ? categorized[i+1].players : [];
+                    matches.push({
+                        id: 'match_' + Date.now() + '_' + i,
+                        team1: team1,
+                        team2: team2,
+                        bestOf: parseInt(bestOf),
+                        sets: [{s1: 0, s2: 0}, {s1: 0, s2: 0}, {s1: 0, s2: 0}],
+                        winner: null
+                    });
+                }
+                return matches;
+            },
+
+            calculateBilling(fees, presentCount) {
+                const total = Number(fees.court) + Number(fees.shuttle) + Number(fees.water) + Number(fees.other);
+                const perPerson = presentCount > 0 ? total / presentCount : 0;
+                return { total, perPerson };
+            }
+        };
+
+        // ==========================================
+        // MODULE 3: UI CONTROLLER (DOM Manipulation)
+        // ==========================================
+        const stateManager = new Store();
+        let selectedPlayerForSwap = null; 
+        let currentEditingMatchId = null;
+
+        const App = {
+            init() {
+                this.cacheDOM();
+                this.bindEvents();
+                stateManager.subscribe(() => this.render());
+                this.render();
+            },
+
+            cacheDOM() {
+                this.globalDate = document.getElementById('globalDate');
+                this.navBtns = document.querySelectorAll('.nav-btn');
+                this.tabContents = document.querySelectorAll('.tab-content');
+                this.themeToggle = document.getElementById('themeToggle');
+                
+                this.memberList = document.getElementById('memberList');
+                this.btnAddMember = document.getElementById('btnAddMember');
+                this.statTotal = document.getElementById('statTotal');
+                this.statPresent = document.getElementById('statPresent');
+
+                this.pairsList = document.getElementById('pairsList');
+                this.btnRandomPairs = document.getElementById('btnRandomPairs');
+                this.btnBalancePairs = document.getElementById('btnBalancePairs');
+                this.matchPresentCount = document.getElementById('matchPresentCount');
+
+                this.btnModeKnockout = document.getElementById('btnModeKnockout');
+                this.btnMode110 = document.getElementById('btnMode110');
+                this.viewKnockout = document.getElementById('viewKnockout');
+                this.view110 = document.getElementById('view110');
+                this.selectBestOf = document.getElementById('selectBestOf');
+                this.btnGenerateBracket = document.getElementById('btnGenerateBracket');
+                this.bracketContainer = document.getElementById('bracketContainer');
+                
+                this.score110A = document.getElementById('score110A');
+                this.score110B = document.getElementById('score110B');
+                this.progressBar110 = document.getElementById('progressBar110');
+                this.btnReset110 = document.getElementById('btnReset110');
+                this.btnSwitchPair110 = document.getElementById('btnSwitchPair110');
+                this.history110List = document.getElementById('history110List');
+                this.lineup110Container = document.getElementById('lineup110Container');
+                this.btnAutoFill110 = document.getElementById('btnAutoFill110');
+
+                this.scoreModal = document.getElementById('scoreModal');
+                this.btnCloseModal = document.getElementById('btnCloseModal');
+                this.modalSetTabs = document.getElementById('modalSetTabs');
+                this.modalCurrentSetLabel = document.getElementById('modalCurrentSetLabel');
+
+                this.feeInputs = ['feeCourt', 'feeShuttle', 'feeWater', 'feeOther'].map(id => document.getElementById(id));
+                this.btnCalcBill = document.getElementById('btnCalcBill');
+                this.billTotal = document.getElementById('billTotal');
+                this.billPeopleCount = document.getElementById('billPeopleCount');
+                this.billPerPerson = document.getElementById('billPerPerson');
+                this.billingList = document.getElementById('billingList');
+            },
+
+            bindEvents() {
+                this.globalDate.addEventListener('change', (e) => stateManager.changeDate(e.target.value));
+                this.themeToggle.addEventListener('click', () => {
+                    const currentState = stateManager.get();
+                    const newTheme = currentState.theme === 'light' ? 'dark' : 'light';
+                    stateManager.applyTheme(newTheme);
+                    stateManager.update({ theme: newTheme });
+                });
+
+                this.navBtns.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const targetId = btn.getAttribute('data-target');
+                        this.tabContents.forEach(tc => tc.classList.remove('active'));
+                        document.getElementById(targetId).classList.add('active');
+                        this.navBtns.forEach(b => {
+                            b.classList.remove('text-primary');
+                            b.classList.add('text-gray-400', 'dark:text-gray-500');
+                        });
+                        btn.classList.remove('text-gray-400', 'dark:text-gray-500');
+                        btn.classList.add('text-primary');
+                    });
+                });
+
+                this.btnAddMember.addEventListener('click', () => {
+                    const newId = 'm_' + Date.now();
+                    const newMember = { id: newId, name: 'Thành viên mới', gender: 'M', level: 'C' };
+                    const state = stateManager.get();
+                    stateManager.update({ members: [newMember, ...state.members] });
+                    const daily = stateManager.getDaily();
+                    daily.attendance[newId] = true;
+                    stateManager.updateDaily({ attendance: daily.attendance });
+                });
+
+                this.memberList.addEventListener('change', (e) => {
+                    const id = e.target.closest('.member-item').dataset.id;
+                    const state = stateManager.get();
+                    
+                    if (e.target.classList.contains('toggle-present')) {
+                        const daily = stateManager.getDaily();
+                        daily.attendance[id] = e.target.checked;
+                        stateManager.updateDaily({ attendance: daily.attendance });
+                    } else {
+                        const members = [...state.members];
+                        const index = members.findIndex(m => m.id === id);
+                        if (e.target.classList.contains('input-name')) members[index].name = e.target.value;
+                        if (e.target.classList.contains('select-level')) members[index].level = e.target.value;
+                        if (e.target.classList.contains('select-gender')) members[index].gender = e.target.value;
+                        stateManager.update({ members });
+                    }
+                });
+
+                this.memberList.addEventListener('click', (e) => {
+                    if(e.target.closest('.btn-delete-member')) {
+                        const id = e.target.closest('.member-item').dataset.id;
+                        if(confirm('Xóa thành viên này khỏi danh sách chung?')) {
+                            const state = stateManager.get();
+                            const members = state.members.filter(m => m.id !== id);
+                            stateManager.update({ members });
+                        }
+                    }
+                });
+
+                this.btnRandomPairs.addEventListener('click', () => {
+                    const state = stateManager.get();
+                    const daily = stateManager.getDaily();
+                    const presentMembers = state.members.filter(m => daily.attendance[m.id]);
+                    if(presentMembers.length < 2) return alert('Cần ít nhất 2 người có mặt!');
+                    stateManager.updateDaily({ pairs: Logic.randomPairs(presentMembers) });
+                });
+
+                this.btnBalancePairs.addEventListener('click', () => {
+                    const state = stateManager.get();
+                    const daily = stateManager.getDaily();
+                    const presentMembers = state.members.filter(m => daily.attendance[m.id]);
+                    if(presentMembers.length < 2) return alert('Cần ít nhất 2 người có mặt!');
+                    stateManager.updateDaily({ pairs: Logic.balancePairs(presentMembers) });
+                });
+
+                this.btnModeKnockout.addEventListener('click', () => this.switchTournamentMode('knockout'));
+                this.btnMode110.addEventListener('click', () => this.switchTournamentMode('110'));
+
+                this.btnGenerateBracket.addEventListener('click', () => {
+                    const daily = stateManager.getDaily();
+                    if(!daily.pairs || daily.pairs.length === 0) return alert('Vui lòng chia đội trước ở Tab Cặp Đấu!');
+                    const bestOf = this.selectBestOf.value;
+                    const matches = Logic.generateBracket(daily.pairs, bestOf);
+                    stateManager.updateDaily({ tournament: { ...daily.tournament, matches } });
+                });
+
+                this.btnCloseModal.addEventListener('click', () => {
+                    this.scoreModal.classList.add('hidden');
+                    this.scoreModal.classList.remove('flex');
+                    currentEditingMatchId = null;
+                });
+
+                this.btnReset110.addEventListener('click', () => {
+                    if(confirm('Reset điểm 110 về 0 và xóa lịch sử thi đấu của ngày này?')) {
+                        const daily = stateManager.getDaily();
+                        stateManager.updateDaily({ tournament: { ...daily.tournament, mode110: { scoreA: 0, scoreB: 0, history: [], lineup: Array(10).fill({a: '', b: ''}) } } });
+                    }
+                });
+
+                this.btnSwitchPair110.addEventListener('click', () => {
+                    const daily = stateManager.getDaily();
+                    const sA = daily.tournament.mode110.scoreA;
+                    const sB = daily.tournament.mode110.scoreB;
+                    const log = `Set: Đội A [${sA}] - [${sB}] Đội B (${new Date().toLocaleTimeString()})`;
+                    const newHistory = [log, ...daily.tournament.mode110.history];
+                    stateManager.updateDaily({ tournament: { ...daily.tournament, mode110: { ...daily.tournament.mode110, history: newHistory } } });
+                });
+
+                // NÂNG CẤP AUTO-FILL: CÔNG BẰNG GIỚI TÍNH & SỐ TRẬN
+                this.btnAutoFill110.addEventListener('click', () => {
+                    const daily = stateManager.getDaily();
+                    if(!daily.pairs || daily.pairs.length < 2) return alert('Vui lòng chia ít nhất 2 cặp ở Tab Cặp Đấu!');
+                    
+                    let pairsInfo = daily.pairs.map((p, index) => ({
+                        originalIndex: index,
+                        players: p,
+                        type: Logic.getPairType(p),
+                        name: p.filter(Boolean).map(x => x.name).join(' + ')
+                    }));
+
+                    let validMatchups = [];
+                    // Chấm điểm mức độ công bằng của tất cả các kèo đấu có thể xảy ra
+                    for (let i = 0; i < pairsInfo.length; i++) {
+                        for (let j = i + 1; j < pairsInfo.length; j++) {
+                            let p1 = pairsInfo[i], p2 = pairsInfo[j];
+                            let score = 0;
+                            if (p1.type === p2.type) score += 10; // Đôi Nam đánh Đôi Nam -> Ưu tiên tuyệt đối
+                            else if ((p1.type==='MD' && p2.type==='XD') || (p1.type==='XD' && p2.type==='MD')) score += 5; // Nam đánh Nam-Nữ -> Chấp nhận được
+                            else if ((p1.type==='WD' && p2.type==='XD') || (p1.type==='XD' && p2.type==='WD')) score += 3; // Nữ đánh Nam-Nữ -> Chấp nhận được
+                            // Nam đánh Nữ (MD vs WD) -> Điểm = 0 (Chỉ xếp nếu hết cách)
+                            
+                            validMatchups.push({ a: p1.name, b: p2.name, score: score });
+                        }
+                    }
+
+                    let newLineup = [];
+                    let usageCount = {};
+                    pairsInfo.forEach(p => usageCount[p.name] = 0);
+
+                    // Chọn 10 trận
+                    for(let i=0; i<10; i++) {
+                        if (validMatchups.length > 0) {
+                            // 1. Ưu tiên những cặp chơi ít nhất. 2. Ưu tiên kèo cân bằng giới tính
+                            validMatchups.sort((m1, m2) => {
+                                let usage1 = usageCount[m1.a] + usageCount[m1.b];
+                                let usage2 = usageCount[m2.a] + usageCount[m2.b];
+                                if (usage1 !== usage2) return usage1 - usage2; 
+                                return m2.score - m1.score;
+                            });
+                            
+                            let selected = validMatchups[0];
+                            usageCount[selected.a]++;
+                            usageCount[selected.b]++;
+                            newLineup.push({ a: selected.a, b: selected.b });
+                        } else {
+                            newLineup.push({a:'', b:''});
+                        }
+                    }
+
+                    stateManager.updateDaily({ tournament: { ...daily.tournament, mode110: { ...daily.tournament.mode110, lineup: newLineup } } });
+                });
+
+                this.lineup110Container.addEventListener('input', (e) => {
+                    if(e.target.classList.contains('input-lineup')) {
+                        const index = e.target.dataset.index;
+                        const team = e.target.dataset.team;
+                        const daily = stateManager.getDaily();
+                        const lineup = [...(daily.tournament.mode110.lineup || Array(10).fill({a: '', b: ''}))];
+                        lineup[index] = { ...lineup[index], [team]: e.target.value };
+                        
+                        stateManager.state.daily[stateManager.state.currentDate].tournament.mode110.lineup = lineup;
+                        localStorage.setItem('badminton_store', JSON.stringify(stateManager.state));
+                    }
+                });
+
+                this.btnCalcBill.addEventListener('click', () => {
+                    const fees = {
+                        court: this.feeInputs[0].value || 0,
+                        shuttle: this.feeInputs[1].value || 0,
+                        water: this.feeInputs[2].value || 0,
+                        other: this.feeInputs[3].value || 0
+                    };
+                    stateManager.updateDaily({ fees });
+                });
+
+                this.billingList.addEventListener('change', (e) => {
+                    if(e.target.classList.contains('toggle-paid')) {
+                        const id = e.target.dataset.id;
+                        const daily = stateManager.getDaily();
+                        daily.payments[id] = e.target.checked;
+                        stateManager.updateDaily({ payments: daily.payments });
+                    }
+                });
+            },
+
+            render() {
+                const state = stateManager.get();
+                const daily = stateManager.getDaily();
+                
+                this.globalDate.value = state.currentDate;
+
+                this.renderMembers(state.members, daily.attendance);
+                this.renderPairs(state.members, daily);
+                this.renderTournament(daily.tournament);
+                this.renderBilling(state.members, daily);
+            },
+
+            renderMembers(members, attendance) {
+                const presentCount = members.filter(m => attendance[m.id]).length;
+                this.statTotal.textContent = members.length;
+                this.statPresent.textContent = presentCount;
+
+                this.memberList.innerHTML = members.map(m => {
+                    const isPresent = attendance[m.id];
+                    return `
+                    <div class="member-item flex items-center justify-between bg-white dark:bg-darkcard p-3 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 transition-colors" data-id="${m.id}">
+                        <div class="flex-1 flex gap-2 items-center mr-2">
+                            <i class="fa-solid fa-grip-vertical text-gray-300 mr-1"></i>
+                            <input type="text" value="${m.name}" class="input-name font-bold bg-transparent w-full focus:bg-gray-50 dark:focus:bg-gray-700 outline-none p-1 rounded min-h-[40px]" placeholder="Tên...">
+                            <select class="select-gender bg-gray-100 dark:bg-gray-700 rounded p-1 text-xs outline-none min-h-[40px]">
+                                <option value="M" ${m.gender === 'M' ? 'selected' : ''}>Nam</option>
+                                <option value="F" ${m.gender === 'F' ? 'selected' : ''}>Nữ</option>
+                            </select>
+                            <select class="select-level bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-bold rounded p-1 text-xs outline-none min-h-[40px]">
+                                ${['A','B','C','D'].map(l => `<option value="${l}" ${m.level === l ? 'selected' : ''}>Level ${l}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="relative inline-block w-12 align-middle select-none transition duration-200 ease-in">
+                                <input type="checkbox" class="toggle-present toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer min-h-[24px]" ${isPresent ? 'checked' : ''}/>
+                                <label class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                            </div>
+                            <button class="btn-delete-member text-gray-400 hover:text-danger p-2 h-10 w-10 flex items-center justify-center rounded">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `}).join('');
+            },
+
+            renderPairs(members, daily) {
+                const presentCount = members.filter(m => daily.attendance[m.id]).length;
+                this.matchPresentCount.textContent = `${presentCount} người khả dụng`;
+
+                const pairs = daily.pairs;
+                if(!pairs || pairs.length === 0) {
+                    this.pairsList.innerHTML = `<div class="col-span-2 text-center text-gray-400 py-8">Chưa có dữ liệu cặp đấu của ngày này.</div>`;
+                    return;
+                }
+
+                this.pairsList.innerHTML = pairs.map((pair, idx) => {
+                    const type = Logic.getPairType(pair);
+                    let typeLabel = '';
+                    if (type === 'MD') typeLabel = '<span class="text-[10px] bg-blue-100 text-blue-600 px-1 rounded ml-1">Đôi Nam</span>';
+                    else if (type === 'WD') typeLabel = '<span class="text-[10px] bg-pink-100 text-pink-600 px-1 rounded ml-1">Đôi Nữ</span>';
+                    else if (type === 'XD') typeLabel = '<span class="text-[10px] bg-purple-100 text-purple-600 px-1 rounded ml-1">Nam Nữ</span>';
+
+                    return `
+                    <div class="bg-white dark:bg-darkcard p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 relative">
+                        <div class="absolute -top-3 -left-3 bg-gray-800 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">${idx + 1}</div>
+                        <div class="absolute top-2 right-2">${typeLabel}</div>
+                        <div class="flex flex-col gap-2 mt-2">
+                            ${this.renderPlayerInPair(pair[0], idx, 0)}
+                            <div class="w-full h-px bg-gray-100 dark:bg-gray-700 my-1"></div>
+                            ${this.renderPlayerInPair(pair[1], idx, 1)}
+                        </div>
+                    </div>
+                `}).join('');
+            },
+
+            renderPlayerInPair(player, pairIdx, slotIdx) {
+                if(!player) return `<div class="text-sm text-gray-400 italic py-2 text-center">-- Khuyết --</div>`;
+                
+                const isSelected = selectedPlayerForSwap && selectedPlayerForSwap.pairIdx === pairIdx && selectedPlayerForSwap.slotIdx === slotIdx;
+                const levelColors = { 'A': 'text-red-500', 'B': 'text-orange-500', 'C': 'text-blue-500', 'D': 'text-gray-500' };
+
+                return `
+                    <div class="flex justify-between items-center p-2 rounded cursor-pointer transition-colors ${isSelected ? 'selected-pair bg-green-50 dark:bg-green-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'}"
+                         onclick="window.App.handlePlayerClick(${pairIdx}, ${slotIdx})">
+                        <div class="font-bold text-sm">
+                            <i class="fa-solid ${player.gender === 'M' ? 'fa-mars text-blue-500' : 'fa-venus text-pink-500'} mr-1"></i>
+                            ${player.name}
+                        </div>
+                        <div class="text-xs font-black ${levelColors[player.level]} bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">Lv ${player.level}</div>
+                    </div>
+                `;
+            },
+
+            renderTournament(tournament) {
+                this.score110A.textContent = tournament.mode110.scoreA;
+                this.score110B.textContent = tournament.mode110.scoreB;
+                let total = tournament.mode110.scoreA + tournament.mode110.scoreB;
+                let percent = total > 0 ? (total / 110) * 100 : 0;
+                this.progressBar110.style.width = `${Math.min(percent, 100)}%`;
+                
+                this.history110List.innerHTML = tournament.mode110.history.map(h => `<li class="py-1 border-b border-dashed dark:border-gray-700 last:border-0">${h}</li>`).join('') || '<li class="text-gray-400 italic">Chưa có lịch sử.</li>';
+
+                const lineup = tournament.mode110.lineup || Array(10).fill({a: '', b: ''});
+                this.lineup110Container.innerHTML = lineup.map((l, i) => `
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="text-xs font-bold w-5 text-gray-500 text-right">#${i+1}</span>
+                        <input type="text" data-index="${i}" data-team="a" value="${l.a}" class="input-lineup flex-1 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded p-2 text-xs font-bold outline-none focus:border-primary" placeholder="Tên cặp Đội A...">
+                        <span class="text-xs text-gray-400 italic">vs</span>
+                        <input type="text" data-index="${i}" data-team="b" value="${l.b}" class="input-lineup flex-1 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded p-2 text-xs font-bold outline-none focus:border-danger" placeholder="Tên cặp Đội B...">
+                    </div>
+                `).join('');
+
+                if(!tournament.matches || tournament.matches.length === 0) {
+                    this.bracketContainer.innerHTML = `<div class="text-center text-gray-400 py-4">Chưa có sơ đồ giải.</div>`;
+                    return;
+                }
+
+                this.bracketContainer.innerHTML = tournament.matches.map(m => {
+                    const t1Name = m.team1.length ? m.team1.map(p=>p.name).join(' + ') : 'BYE';
+                    const t2Name = m.team2.length ? m.team2.map(p=>p.name).join(' + ') : 'BYE';
+                    const isFinished = m.winner !== null;
+
+                    let win1 = 0, win2 = 0;
+                    if (m.bestOf === 3 && m.sets) {
+                        m.sets.forEach(s => {
+                            if(s.s1 > s.s2 && s.s1 >= 21) win1++;
+                            else if(s.s2 > s.s1 && s.s2 >= 21) win2++;
+                        });
+                    }
+                    const displayScore1 = m.bestOf === 3 ? win1 : (m.sets ? m.sets[0].s1 : 0);
+                    const displayScore2 = m.bestOf === 3 ? win2 : (m.sets ? m.sets[0].s2 : 0);
+                    const scoreLabel = m.bestOf === 3 ? '(Set)' : '(Điểm)';
+
+                    return `
+                    <div class="bg-white dark:bg-darkcard border ${isFinished ? 'border-primary' : 'border-gray-200 dark:border-gray-700'} rounded-lg shadow-sm w-full md:w-80 flex-shrink-0 cursor-pointer hover:border-primary transition-colors"
+                         onclick="window.App.openScoreModal('${m.id}')">
+                        <div class="p-3 flex justify-between items-center border-b border-gray-100 dark:border-gray-800 ${m.winner===1 ? 'bg-green-50 dark:bg-green-900/10 font-bold' : ''}">
+                            <span class="text-sm truncate w-3/4">${t1Name}</span>
+                            <span class="text-lg font-bold">${displayScore1} <span class="text-[10px] text-gray-400 font-normal">${scoreLabel}</span></span>
+                        </div>
+                        <div class="p-3 flex justify-between items-center ${m.winner===2 ? 'bg-green-50 dark:bg-green-900/10 font-bold' : ''}">
+                            <span class="text-sm truncate w-3/4">${t2Name}</span>
+                            <span class="text-lg font-bold">${displayScore2} <span class="text-[10px] text-gray-400 font-normal">${scoreLabel}</span></span>
+                        </div>
+                    </div>
+                `}).join('');
+            },
+
+            renderBilling(members, daily) {
+                this.feeInputs[0].value = daily.fees.court;
+                this.feeInputs[1].value = daily.fees.shuttle;
+                this.feeInputs[2].value = daily.fees.water;
+                this.feeInputs[3].value = daily.fees.other;
+
+                const presentMembers = members.filter(m => daily.attendance[m.id]);
+                const calc = Logic.calculateBilling(daily.fees, presentMembers.length);
+                
+                this.billTotal.textContent = calc.total.toLocaleString();
+                this.billPeopleCount.textContent = presentMembers.length;
+                this.billPerPerson.textContent = Math.round(calc.perPerson).toLocaleString() + 'đ';
+
+                if(presentMembers.length === 0) {
+                    this.billingList.innerHTML = `<div class="text-gray-400 italic">Không có ai điểm danh vào ngày này.</div>`;
+                    return;
+                }
+
+                this.billingList.innerHTML = presentMembers.map(m => {
+                    const hasPaid = daily.payments[m.id];
+                    return `
+                    <label class="flex items-center justify-between p-3 border border-gray-100 dark:border-gray-800 rounded-lg bg-gray-50 dark:bg-gray-800/50 cursor-pointer ${hasPaid ? 'border-primary bg-green-50 dark:bg-green-900/20' : ''}">
+                        <span class="font-bold text-sm ${hasPaid ? 'text-primary' : ''}">${m.name}</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-semibold ${hasPaid ? 'text-primary' : 'text-danger'}">${hasPaid ? 'ĐÃ LÚA' : 'CHƯA ĐÓNG'}</span>
+                            <input type="checkbox" data-id="${m.id}" class="toggle-paid w-6 h-6 accent-primary" ${hasPaid ? 'checked' : ''}>
+                        </div>
+                    </label>
+                `}).join('');
+            },
+
+            switchTournamentMode(mode) {
+                if(mode === 'knockout') {
+                    this.btnModeKnockout.classList.replace('bg-transparent', 'bg-white');
+                    this.btnModeKnockout.classList.replace('text-gray-500', 'text-primary');
+                    this.btnModeKnockout.classList.add('shadow', 'dark:bg-darkcard');
+                    this.btnMode110.classList.remove('bg-white', 'shadow', 'text-primary', 'dark:bg-darkcard');
+                    this.btnMode110.classList.add('text-gray-500');
+                    this.viewKnockout.classList.remove('hidden');
+                    this.view110.classList.add('hidden');
+                } else {
+                    this.btnMode110.classList.replace('bg-transparent', 'bg-white');
+                    this.btnMode110.classList.replace('text-gray-500', 'text-primary');
+                    this.btnMode110.classList.add('shadow', 'dark:bg-darkcard');
+                    this.btnModeKnockout.classList.remove('bg-white', 'shadow', 'text-primary', 'dark:bg-darkcard');
+                    this.btnModeKnockout.classList.add('text-gray-500');
+                    this.view110.classList.remove('hidden');
+                    this.viewKnockout.classList.add('hidden');
+                }
+            },
+
+            update110(delta, team) {
+                const daily = stateManager.getDaily();
+                let { scoreA, scoreB, history, lineup } = daily.tournament.mode110;
+                if(team === 'A') scoreA = Math.max(0, scoreA + delta);
+                if(team === 'B') scoreB = Math.max(0, scoreB + delta);
+                stateManager.updateDaily({ tournament: { ...daily.tournament, mode110: { scoreA, scoreB, history, lineup } } });
+            },
+
+            handlePlayerClick(pairIdx, slotIdx) {
+                const daily = stateManager.getDaily();
+                if(!selectedPlayerForSwap) {
+                    selectedPlayerForSwap = { pairIdx, slotIdx };
+                    this.renderPairs(stateManager.get().members, daily);
+                } else {
+                    if(selectedPlayerForSwap.pairIdx === pairIdx && selectedPlayerForSwap.slotIdx === slotIdx) {
+                        selectedPlayerForSwap = null;
+                        this.renderPairs(stateManager.get().members, daily);
+                        return;
+                    }
+                    const newPairs = JSON.parse(JSON.stringify(daily.pairs)); 
+                    const p1 = newPairs[selectedPlayerForSwap.pairIdx][selectedPlayerForSwap.slotIdx];
+                    const p2 = newPairs[pairIdx][slotIdx];
+
+                    newPairs[selectedPlayerForSwap.pairIdx][selectedPlayerForSwap.slotIdx] = p2;
+                    newPairs[pairIdx][slotIdx] = p1;
+
+                    selectedPlayerForSwap = null;
+                    stateManager.updateDaily({ pairs: newPairs });
+                }
+            },
+
+            openScoreModal(matchId) {
+                const daily = stateManager.getDaily();
+                const match = daily.tournament.matches.find(m => m.id === matchId);
+                if(!match) return;
+
+                currentEditingMatchId = matchId;
+                window.currentSetIndex = 0;
+
+                const t1Name = match.team1.length ? match.team1.map(p=>p.name).join(' + ') : 'BYE';
+                const t2Name = match.team2.length ? match.team2.map(p=>p.name).join(' + ') : 'BYE';
+                
+                document.getElementById('modalName1').textContent = t1Name;
+                document.getElementById('modalName2').textContent = t2Name;
+                
+                if (match.bestOf === 3) this.modalSetTabs.classList.remove('hidden');
+                else this.modalSetTabs.classList.add('hidden');
+
+                this.switchSet(0); 
+                
+                this.scoreModal.classList.remove('hidden');
+                this.scoreModal.classList.add('flex');
+            },
+
+            switchSet(index) {
+                window.currentSetIndex = index;
+                this.renderModalScore();
+                
+                const btns = this.modalSetTabs.querySelectorAll('button');
+                btns.forEach((b, i) => {
+                    if (i === index) b.classList.replace('bg-gray-600', 'bg-primary');
+                    else b.classList.replace('bg-primary', 'bg-gray-600');
+                });
+            },
+
+            renderModalScore() {
+                const daily = stateManager.getDaily();
+                const match = daily.tournament.matches.find(m => m.id === currentEditingMatchId);
+                if(!match || !match.sets) return;
+                
+                const sIdx = window.currentSetIndex || 0;
+                this.modalCurrentSetLabel.textContent = match.bestOf === 3 ? `Đang cập nhật Set ${sIdx + 1}` : 'Đang cập nhật Điểm';
+                document.getElementById('modalScore1').textContent = match.sets[sIdx].s1;
+                document.getElementById('modalScore2').textContent = match.sets[sIdx].s2;
+            },
+
+            updateMatchScore(teamIndex, delta = 1) {
+                if(!currentEditingMatchId) return;
+                
+                const daily = stateManager.getDaily();
+                const matches = [...daily.tournament.matches];
+                const mIndex = matches.findIndex(m => m.id === currentEditingMatchId);
+                
+                if(mIndex > -1) {
+                    const sIdx = window.currentSetIndex || 0;
+                    if (!matches[mIndex].sets) matches[mIndex].sets = [{s1:0,s2:0},{s1:0,s2:0},{s1:0,s2:0}];
+
+                    if(teamIndex === 1) matches[mIndex].sets[sIdx].s1 = Math.max(0, matches[mIndex].sets[sIdx].s1 + delta);
+                    if(teamIndex === 2) matches[mIndex].sets[sIdx].s2 = Math.max(0, matches[mIndex].sets[sIdx].s2 + delta);
+                    
+                    let win1 = 0, win2 = 0;
+                    matches[mIndex].sets.forEach(s => {
+                        if(s.s1 > s.s2 && s.s1 >= 21) win1++;
+                        if(s.s2 > s.s1 && s.s2 >= 21) win2++;
+                    });
+                    
+                    if (matches[mIndex].bestOf === 3) {
+                        if(win1 >= 2) matches[mIndex].winner = 1;
+                        else if(win2 >= 2) matches[mIndex].winner = 2;
+                        else matches[mIndex].winner = null;
+                    } else {
+                        if(matches[mIndex].sets[0].s1 > matches[mIndex].sets[0].s2 && matches[mIndex].sets[0].s1 >= 21) matches[mIndex].winner = 1;
+                        else if(matches[mIndex].sets[0].s2 > matches[mIndex].sets[0].s1 && matches[mIndex].sets[0].s2 >= 21) matches[mIndex].winner = 2;
+                        else matches[mIndex].winner = null;
+                    }
+
+                    this.renderModalScore();
+                    stateManager.updateDaily({ tournament: { ...daily.tournament, matches } });
+                }
+            }
+        };
+
+        window.App = {
+            update110: App.update110.bind(App),
+            handlePlayerClick: App.handlePlayerClick.bind(App),
+            openScoreModal: App.openScoreModal.bind(App),
+            updateMatchScore: App.updateMatchScore.bind(App),
+            switchSet: App.switchSet.bind(App)
+        };
+
+        document.addEventListener('DOMContentLoaded', () => { App.init(); });
+
+    </script>
+</body>
+</html>
