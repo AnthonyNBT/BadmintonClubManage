@@ -53,7 +53,7 @@
 <body class="bg-gray-50 text-gray-900 dark:bg-darkbg dark:text-gray-100 min-h-screen flex flex-col pb-20 transition-colors duration-200">
 
     <!-- Header (Global Context) -->
-    <header class="bg-white dark:bg-darkcard shadow-sm px-4 py-2 flex justify-between items-center sticky top-0 z-20 transition-colors duration-200">
+    <header class="bg-white dark:bg-darkcard shadow-sm px-4 py-2 flex justify-between items-center sticky top-0 z-10 transition-colors duration-200">
         <div class="flex flex-col">
             <h1 class="text-xl font-bold text-primary flex items-center">
                 <i class="fa-solid fa-shuttlecock mr-2"></i>ClubManager
@@ -88,8 +88,8 @@
                     <div id="statTotal" class="text-xl font-bold">0</div>
                 </div>
                 <div class="bg-green-50 dark:bg-green-900/20 p-3 rounded-xl shadow-sm flex-1 text-center border border-green-100 dark:border-green-800">
-                    <div class="text-xs text-green-600 dark:text-green-400">Có mặt hôm nay</div>
-                    <div id="statPresent" class="text-xl font-bold text-green-600 dark:text-green-400">0</div>
+                    <div class="text-xs text-green-600 dark:text-green-400">Tổng tham gia</div>
+                    <div id="statPresent" class="text-xl font-bold text-green-600 dark:text-green-400 flex flex-col justify-center">0</div>
                 </div>
             </div>
 
@@ -105,16 +105,16 @@
                 <div class="text-sm bg-gray-200 dark:bg-gray-700 px-3 py-1 rounded-full" id="matchPresentCount">0 người</div>
             </div>
 
-            <p class="text-sm text-gray-600 dark:text-gray-300">Tính năng này dùng để gom cặp <b>chuẩn bị cho Tab Giải đấu</b> (bình thường đánh tự do không cần dùng).</p>
+            <p class="text-sm text-gray-600 dark:text-gray-300">Hệ thống sẽ tự động ghép cả <b>Thành viên</b> và <b>Khách</b> để xếp sơ đồ thi đấu.</p>
 
             <div class="grid grid-cols-2 gap-3">
                 <button id="btnRandomPairs" class="bg-blue-600 text-white rounded-lg font-semibold min-h-[48px] shadow-sm active:scale-95 transition-transform flex flex-col items-center justify-center">
                     <span><i class="fa-solid fa-dice mr-1"></i> Random</span>
-                    <span class="text-[10px] font-normal opacity-80">Trộn ngẫu nhiên</span>
+                    <span class="text-[10px] font-normal opacity-80">Trộn theo Giới Tính</span>
                 </button>
                 <button id="btnBalancePairs" class="bg-primary text-white rounded-lg font-semibold min-h-[48px] shadow-sm active:scale-95 transition-transform flex flex-col items-center justify-center">
                     <span><i class="fa-solid fa-scale-balanced mr-1"></i> Cân bằng</span>
-                    <span class="text-[10px] font-normal opacity-80">Mạnh cặp Yếu</span>
+                    <span class="text-[10px] font-normal opacity-80">Mạnh cặp Yếu (Cùng Giới)</span>
                 </button>
             </div>
             <p class="text-xs text-gray-500 dark:text-gray-400 text-center italic">* Mẹo: Sau khi xếp, có thể chạm vào người này rồi chạm vào người khác để <b>ĐỔI CHỖ (Swap)</b> tự chia theo ý thích.</p>
@@ -183,10 +183,23 @@
 
                 <div class="bg-white dark:bg-darkcard rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
                     <div class="flex justify-between items-end mb-3 border-b dark:border-gray-700 pb-2">
-                        <h3 class="text-sm font-bold">Danh sách 10 trận thi đấu</h3>
+                        <h3 class="text-sm font-bold">Danh sách Đội & Thi đấu</h3>
                         <button id="btnAutoFill110" class="text-xs bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 px-3 py-1.5 rounded-lg shadow-sm font-bold active:scale-95 transition-transform"><i class="fa-solid fa-wand-magic-sparkles mr-1"></i>Tự động chia</button>
                     </div>
-                    <div id="lineup110Container" class="space-y-2">
+                    
+                    <!-- Macro Teams Display -->
+                    <div id="macroTeamsContainer" class="grid grid-cols-2 gap-4 mb-4 hidden">
+                        <div class="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-xl border border-blue-100 dark:border-blue-800">
+                            <h4 class="text-sm font-bold text-blue-600 mb-2 border-b border-blue-200 dark:border-blue-800 pb-1">ĐỘI A</h4>
+                            <ul id="listTeamA" class="space-y-1 text-xs font-semibold text-gray-700 dark:text-gray-300"></ul>
+                        </div>
+                        <div class="bg-red-50 dark:bg-red-900/20 p-3 rounded-xl border border-red-100 dark:border-red-800">
+                            <h4 class="text-sm font-bold text-danger mb-2 border-b border-red-200 dark:border-red-800 pb-1">ĐỘI B</h4>
+                            <ul id="listTeamB" class="space-y-1 text-xs font-semibold text-gray-700 dark:text-gray-300"></ul>
+                        </div>
+                    </div>
+
+                    <div id="lineup110Container" class="space-y-2 mt-4">
                         <!-- Rendered by JS -->
                     </div>
                 </div>
@@ -228,7 +241,7 @@
                 <div class="border-t border-dashed border-gray-300 dark:border-gray-600 pt-4 flex justify-between items-center">
                     <div>
                         <div class="text-sm text-gray-500">Tổng chi: <span id="billTotal" class="font-bold text-gray-800 dark:text-white">0</span>đ</div>
-                        <div class="text-sm text-gray-500">Chia cho: <span id="billPeopleCount" class="font-bold text-gray-800 dark:text-white">0</span> người (Có mặt)</div>
+                        <div class="text-sm text-gray-500">Chia cho: <span id="billPeopleCount" class="font-bold text-gray-800 dark:text-white">0</span> người (Cả khách)</div>
                     </div>
                     <div class="text-right">
                         <div class="text-xs text-primary font-bold">MỖI NGƯỜI ĐÓNG:</div>
@@ -239,7 +252,7 @@
             </div>
 
             <div class="bg-white dark:bg-darkcard rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-800">
-                <h3 class="text-sm font-bold mb-3">Danh sách thu tiền (Chỉ người có mặt)</h3>
+                <h3 class="text-sm font-bold mb-3">Danh sách thu tiền</h3>
                 <div id="billingList" class="space-y-2">
                     <!-- Billing checklist rendered here -->
                 </div>
@@ -439,13 +452,26 @@
 
             createEmptyDailyRecord() {
                 return {
-                    attendance: {}, payments: {}, fees: { court: 0, shuttle: 0, water: 0, other: 0 },
-                    pairs: [], tournament: { matches: [], mode110: { scoreA: 0, scoreB: 0, history: [], lineup: Array(10).fill({a: '', b: ''}) } }
+                    attendance: {}, payments: {}, guests: {}, guestDetails: {}, fees: { court: 0, shuttle: 0, water: 0, other: 0 },
+                    pairs: [], 
+                    tournament: { 
+                        matches: [], 
+                        mode110: { 
+                            scoreA: 0, scoreB: 0, history: [], 
+                            lineup: Array(10).fill({a: '', aLevel: '', b: '', bLevel: ''}),
+                            macroTeams: { A: [], B: [] } // Nơi lưu Đội cố định
+                        } 
+                    }
                 };
             }
 
             ensureDaily(date) {
                 if (!this.state.daily[date]) this.state.daily[date] = this.createEmptyDailyRecord();
+                if (!this.state.daily[date].tournament.mode110.macroTeams) {
+                    this.state.daily[date].tournament.mode110.macroTeams = { A: [], B: [] };
+                }
+                if (!this.state.daily[date].guests) this.state.daily[date].guests = {};
+                if (!this.state.daily[date].guestDetails) this.state.daily[date].guestDetails = {};
             }
 
             changeDate(newDate) {
@@ -486,64 +512,77 @@
         }
 
         // ==========================================
-        // MODULE 2: BUSINESS LOGIC & ALGORITHMS (UPGRADED)
+        // MODULE 2: BUSINESS LOGIC & ALGORITHMS (TỐI ƯU CÔNG BẰNG)
         // ==========================================
         const Logic = {
-            weightMap: { 'A': 4, 'B': 3, 'C': 2, 'D': 1 },
+            // Cân bằng trọng số trình độ: A=8, B=6, C=4, D=2
+            weightMap: { 'A': 8, 'B': 6, 'C': 4, 'D': 2 },
 
-            // Hàm phân loại Cặp (MD = Nam/Nam, WD = Nữ/Nữ, XD = Nam/Nữ)
             getPairType(pair) {
                 if (!pair || !pair[0] || !pair[1]) return 'SINGLE';
                 const g1 = pair[0].gender;
                 const g2 = pair[1].gender;
-                if (g1 === 'M' && g2 === 'M') return 'MD'; // Đôi Nam
-                if (g1 === 'F' && g2 === 'F') return 'WD'; // Đôi Nữ
-                return 'XD'; // Đôi Nam Nữ
+                if (g1 === 'M' && g2 === 'M') return 'MD'; 
+                if (g1 === 'F' && g2 === 'F') return 'WD'; 
+                return 'XD'; 
             },
 
-            // Hàm tính điểm sức mạnh của cặp
+            getPairLevelString(pair) {
+                if (!pair || !pair[0]) return '';
+                let s1 = pair[0].level || '';
+                let s2 = pair[1] ? pair[1].level : '';
+                if(s2) return `${s1}-${s2}`;
+                return s1;
+            },
+
             getPairStrength(pair) {
                 if (!pair || !pair[0]) return 0;
-                let s1 = this.weightMap[pair[0].level] || 1;
-                let s2 = pair[1] ? (this.weightMap[pair[1].level] || 1) : 0;
+                let s1 = this.weightMap[pair[0].level] || 2;
+                if (pair[0].gender === 'F') s1 -= 1.5; 
+                let s2 = 0;
+                if (pair[1]) {
+                    s2 = this.weightMap[pair[1].level] || 2;
+                    if (pair[1].gender === 'F') s2 -= 1.5;
+                }
                 return s1 + s2;
             },
 
             randomPairs(members) {
-                let pool = [...members].sort(() => Math.random() - 0.5);
+                let males = members.filter(m => m.gender === 'M').sort(() => Math.random() - 0.5);
+                let females = members.filter(m => m.gender === 'F').sort(() => Math.random() - 0.5);
                 let pairs = [];
-                while (pool.length >= 2) pairs.push([pool.shift(), pool.shift()]);
-                if (pool.length) pairs.push([pool.shift(), null]);
+                while (males.length >= 2) pairs.push([males.shift(), males.shift()]);
+                while (females.length >= 2) pairs.push([females.shift(), females.shift()]);
+                let leftovers = [...males, ...females].sort(() => Math.random() - 0.5);
+                while(leftovers.length >= 2) pairs.push([leftovers.shift(), leftovers.shift()]);
+                if (leftovers.length) pairs.push([leftovers.shift(), null]);
                 return pairs;
             },
 
             balancePairs(members) {
-                // Sắp xếp người chơi từ mạnh đến yếu
-                let pool = [...members].sort((a, b) => this.weightMap[b.level] - this.weightMap[a.level]);
                 let pairs = [];
-                // Bốc 1 người mạnh nhất ghép với 1 người yếu nhất (để cân bằng sức mạnh tổng)
-                while (pool.length >= 2) {
-                    pairs.push([pool.shift(), pool.pop()]);
-                }
-                if (pool.length) pairs.push([pool.shift(), null]);
+                let males = members.filter(m => m.gender === 'M').sort((a, b) => this.weightMap[b.level] - this.weightMap[a.level]);
+                let females = members.filter(m => m.gender === 'F').sort((a, b) => this.weightMap[b.level] - this.weightMap[a.level]);
+                while (males.length >= 2) pairs.push([males.shift(), males.pop()]);
+                while (females.length >= 2) pairs.push([females.shift(), females.pop()]);
+                let leftovers = [...males, ...females];
+                while(leftovers.length >= 2) pairs.push([leftovers.shift(), leftovers.pop()]);
+                if (leftovers.length) pairs.push([leftovers.shift(), null]);
                 return pairs;
             },
 
             generateBracket(pairs, bestOf = 1) {
-                // 1. Phân loại và phân tích từng cặp
                 let categorized = pairs.map(p => ({
                     players: p,
                     type: this.getPairType(p),
                     strength: this.getPairStrength(p)
                 }));
 
-                // 2. Sắp xếp để những cặp Cùng Thể Loại & Cùng Sức Mạnh đứng gần nhau
                 categorized.sort((a, b) => {
-                    if (a.type !== b.type) return a.type.localeCompare(b.type); // Gom Nam-Nam, Nữ-Nữ lại với nhau
-                    return b.strength - a.strength; // Gom mạnh với mạnh
+                    if (a.type !== b.type) return a.type.localeCompare(b.type); 
+                    return b.strength - a.strength; 
                 });
 
-                // 3. Ghép cặp liền kề vào 1 trận (Đảm bảo Nam-Nam đánh với Nam-Nam)
                 let matches = [];
                 for (let i = 0; i < categorized.length; i += 2) {
                     let team1 = categorized[i].players || [];
@@ -614,6 +653,9 @@
                 this.history110List = document.getElementById('history110List');
                 this.lineup110Container = document.getElementById('lineup110Container');
                 this.btnAutoFill110 = document.getElementById('btnAutoFill110');
+                this.macroTeamsContainer = document.getElementById('macroTeamsContainer');
+                this.listTeamA = document.getElementById('listTeamA');
+                this.listTeamB = document.getElementById('listTeamB');
 
                 this.scoreModal = document.getElementById('scoreModal');
                 this.btnCloseModal = document.getElementById('btnCloseModal');
@@ -626,6 +668,32 @@
                 this.billPeopleCount = document.getElementById('billPeopleCount');
                 this.billPerPerson = document.getElementById('billPerPerson');
                 this.billingList = document.getElementById('billingList');
+            },
+
+            // Lấy danh sách pool chia cặp (Bao gồm Thành viên đi + Khách của họ/người nghỉ)
+            getMatchPool() {
+                const state = stateManager.get();
+                const daily = stateManager.getDaily();
+                let matchPool = [];
+                
+                state.members.forEach(m => {
+                    if (daily.attendance[m.id]) {
+                        matchPool.push(m);
+                    }
+                    const guestCount = daily.guests[m.id] || 0;
+                    const details = daily.guestDetails[m.id] || [];
+                    
+                    for (let i = 0; i < guestCount; i++) {
+                        const detail = details[i] || {gender: 'M', level: 'C'};
+                        matchPool.push({
+                            id: `g_${m.id}_${i}`,
+                            name: `Khách ${i + 1} (${m.name.split(' ').pop()})`, // Khách 1(Tâm), Khách 2(Tâm)
+                            gender: detail.gender,
+                            level: detail.level
+                        });
+                    }
+                });
+                return matchPool;
             },
 
             bindEvents() {
@@ -662,13 +730,44 @@
                 });
 
                 this.memberList.addEventListener('change', (e) => {
+                    const daily = stateManager.getDaily();
+
+                    // Xử lý Input thuộc về Khách (Sub-row)
+                    if (e.target.classList.contains('guest-gender') || e.target.classList.contains('guest-level')) {
+                        const hostId = e.target.dataset.host;
+                        const idx = e.target.dataset.index;
+                        
+                        if (!daily.guestDetails) daily.guestDetails = {};
+                        if (!daily.guestDetails[hostId]) daily.guestDetails[hostId] = [];
+                        if (!daily.guestDetails[hostId][idx]) daily.guestDetails[hostId][idx] = {gender: 'M', level: 'C'};
+                        
+                        if (e.target.classList.contains('guest-gender')) {
+                            daily.guestDetails[hostId][idx].gender = e.target.value;
+                        } else {
+                            daily.guestDetails[hostId][idx].level = e.target.value;
+                        }
+                        stateManager.updateDaily({ guestDetails: daily.guestDetails });
+                        return; // Ngắt luồng
+                    }
+
+                    // Xử lý Input thuộc về Thành viên chính
                     const id = e.target.closest('.member-item').dataset.id;
                     const state = stateManager.get();
                     
                     if (e.target.classList.contains('toggle-present')) {
-                        const daily = stateManager.getDaily();
                         daily.attendance[id] = e.target.checked;
                         stateManager.updateDaily({ attendance: daily.attendance });
+                    } else if (e.target.classList.contains('select-guest')) {
+                        const count = parseInt(e.target.value);
+                        daily.guests[id] = count;
+                        
+                        // Quản lý mảng chi tiết khách (Cho phép UI render thêm/bớt hàng)
+                        if (!daily.guestDetails) daily.guestDetails = {};
+                        if (!daily.guestDetails[id]) daily.guestDetails[id] = [];
+                        while (daily.guestDetails[id].length < count) daily.guestDetails[id].push({gender: 'M', level: 'C'});
+                        daily.guestDetails[id] = daily.guestDetails[id].slice(0, count);
+
+                        stateManager.updateDaily({ guests: daily.guests, guestDetails: daily.guestDetails });
                     } else {
                         const members = [...state.members];
                         const index = members.findIndex(m => m.id === id);
@@ -691,19 +790,15 @@
                 });
 
                 this.btnRandomPairs.addEventListener('click', () => {
-                    const state = stateManager.get();
-                    const daily = stateManager.getDaily();
-                    const presentMembers = state.members.filter(m => daily.attendance[m.id]);
-                    if(presentMembers.length < 2) return alert('Cần ít nhất 2 người có mặt!');
-                    stateManager.updateDaily({ pairs: Logic.randomPairs(presentMembers) });
+                    const pool = this.getMatchPool();
+                    if(pool.length < 2) return alert('Cần ít nhất 2 người có mặt (gồm cả khách)!');
+                    stateManager.updateDaily({ pairs: Logic.randomPairs(pool) });
                 });
 
                 this.btnBalancePairs.addEventListener('click', () => {
-                    const state = stateManager.get();
-                    const daily = stateManager.getDaily();
-                    const presentMembers = state.members.filter(m => daily.attendance[m.id]);
-                    if(presentMembers.length < 2) return alert('Cần ít nhất 2 người có mặt!');
-                    stateManager.updateDaily({ pairs: Logic.balancePairs(presentMembers) });
+                    const pool = this.getMatchPool();
+                    if(pool.length < 2) return alert('Cần ít nhất 2 người có mặt (gồm cả khách)!');
+                    stateManager.updateDaily({ pairs: Logic.balancePairs(pool) });
                 });
 
                 this.btnModeKnockout.addEventListener('click', () => this.switchTournamentMode('knockout'));
@@ -726,7 +821,7 @@
                 this.btnReset110.addEventListener('click', () => {
                     if(confirm('Reset điểm 110 về 0 và xóa lịch sử thi đấu của ngày này?')) {
                         const daily = stateManager.getDaily();
-                        stateManager.updateDaily({ tournament: { ...daily.tournament, mode110: { scoreA: 0, scoreB: 0, history: [], lineup: Array(10).fill({a: '', b: ''}) } } });
+                        stateManager.updateDaily({ tournament: { ...daily.tournament, mode110: { scoreA: 0, scoreB: 0, history: [], lineup: Array(10).fill({a: '', aLevel: '', b: '', bLevel: ''}), macroTeams: {A:[], B:[]} } } });
                     }
                 });
 
@@ -739,58 +834,101 @@
                     stateManager.updateDaily({ tournament: { ...daily.tournament, mode110: { ...daily.tournament.mode110, history: newHistory } } });
                 });
 
-                // NÂNG CẤP AUTO-FILL: CÔNG BẰNG GIỚI TÍNH & SỐ TRẬN
+                // ==========================================
+                // THUẬT TOÁN CHIA ĐỘI LỚN & XẾP TRẬN CHẶT CHẼ
+                // ==========================================
                 this.btnAutoFill110.addEventListener('click', () => {
                     const daily = stateManager.getDaily();
                     if(!daily.pairs || daily.pairs.length < 2) return alert('Vui lòng chia ít nhất 2 cặp ở Tab Cặp Đấu!');
                     
                     let pairsInfo = daily.pairs.map((p, index) => ({
-                        originalIndex: index,
+                        id: 'p' + index,
                         players: p,
                         type: Logic.getPairType(p),
+                        strength: Logic.getPairStrength(p),
+                        levelStr: Logic.getPairLevelString(p),
                         name: p.filter(Boolean).map(x => x.name).join(' + ')
                     }));
 
-                    let validMatchups = [];
-                    // Chấm điểm mức độ công bằng của tất cả các kèo đấu có thể xảy ra
-                    for (let i = 0; i < pairsInfo.length; i++) {
-                        for (let j = i + 1; j < pairsInfo.length; j++) {
-                            let p1 = pairsInfo[i], p2 = pairsInfo[j];
-                            let score = 0;
-                            if (p1.type === p2.type) score += 10; // Đôi Nam đánh Đôi Nam -> Ưu tiên tuyệt đối
-                            else if ((p1.type==='MD' && p2.type==='XD') || (p1.type==='XD' && p2.type==='MD')) score += 5; // Nam đánh Nam-Nữ -> Chấp nhận được
-                            else if ((p1.type==='WD' && p2.type==='XD') || (p1.type==='XD' && p2.type==='WD')) score += 3; // Nữ đánh Nam-Nữ -> Chấp nhận được
-                            // Nam đánh Nữ (MD vs WD) -> Điểm = 0 (Chỉ xếp nếu hết cách)
-                            
-                            validMatchups.push({ a: p1.name, b: p2.name, score: score });
-                        }
-                    }
+                    // 1. TẠO 2 ĐỘI CỐ ĐỊNH (MACRO TEAMS)
+                    let groupA = [];
+                    let groupB = [];
+                    let sumA = 0;
+                    let sumB = 0;
 
+                    let sortedPairs = pairsInfo.slice().sort((p1, p2) => p2.strength - p1.strength);
+
+                    sortedPairs.forEach(p => {
+                        if (groupA.length < groupB.length) {
+                            groupA.push(p); sumA += p.strength;
+                        } else if (groupB.length < groupA.length) {
+                            groupB.push(p); sumB += p.strength;
+                        } else {
+                            if (sumA <= sumB) {
+                                groupA.push(p); sumA += p.strength;
+                            } else {
+                                groupB.push(p); sumB += p.strength;
+                            }
+                        }
+                    });
+
+                    // 2. RÚT 10 TRẬN CHỐNG LẶP & CÔNG BẰNG GIỚI TÍNH
                     let newLineup = [];
                     let usageCount = {};
-                    pairsInfo.forEach(p => usageCount[p.name] = 0);
+                    pairsInfo.forEach(p => usageCount[p.id] = 0);
+                    let matchHistoryMap = {};
 
-                    // Chọn 10 trận
                     for(let i=0; i<10; i++) {
-                        if (validMatchups.length > 0) {
-                            // 1. Ưu tiên những cặp chơi ít nhất. 2. Ưu tiên kèo cân bằng giới tính
-                            validMatchups.sort((m1, m2) => {
-                                let usage1 = usageCount[m1.a] + usageCount[m1.b];
-                                let usage2 = usageCount[m2.a] + usageCount[m2.b];
-                                if (usage1 !== usage2) return usage1 - usage2; 
-                                return m2.score - m1.score;
+                        let bestMatchup = null;
+                        let bestScore = -Infinity;
+
+                        groupA.forEach(pA => {
+                            groupB.forEach(pB => {
+                                let score = 0;
+                                
+                                // Chấm điểm ưu tiên Thể loại (Giới tính)
+                                if (pA.type === pB.type) score += 100000; 
+                                else if (['MD', 'XD'].includes(pA.type) && ['MD', 'XD'].includes(pB.type)) score += 50000; 
+                                else if (['WD', 'XD'].includes(pA.type) && ['WD', 'XD'].includes(pB.type)) score += 40000; 
+                                else score -= 1000000; 
+                                
+                                let diffPenalty = Math.abs(pA.strength - pB.strength) * 1000;
+                                score -= diffPenalty;
+
+                                let usagePenalty = (usageCount[pA.id] + usageCount[pB.id]) * 10000;
+                                score -= usagePenalty;
+                                
+                                let matchKey = pA.id + '|' + pB.id;
+                                let rematchPenalty = (matchHistoryMap[matchKey] || 0) * 200000; 
+                                score -= rematchPenalty;
+                                
+                                if (score > bestScore) {
+                                    bestScore = score;
+                                    bestMatchup = { pA: pA, pB: pB, matchKey: matchKey };
+                                }
                             });
+                        });
+
+                        if (bestMatchup) {
+                            usageCount[bestMatchup.pA.id]++;
+                            usageCount[bestMatchup.pB.id]++;
+                            matchHistoryMap[bestMatchup.matchKey] = (matchHistoryMap[bestMatchup.matchKey] || 0) + 1;
                             
-                            let selected = validMatchups[0];
-                            usageCount[selected.a]++;
-                            usageCount[selected.b]++;
-                            newLineup.push({ a: selected.a, b: selected.b });
+                            newLineup.push({ 
+                                a: bestMatchup.pA.name, aLevel: bestMatchup.pA.levelStr,
+                                b: bestMatchup.pB.name, bLevel: bestMatchup.pB.levelStr
+                            });
                         } else {
-                            newLineup.push({a:'', b:''});
+                            newLineup.push({a:'', aLevel: '', b:'', bLevel: ''});
                         }
                     }
 
-                    stateManager.updateDaily({ tournament: { ...daily.tournament, mode110: { ...daily.tournament.mode110, lineup: newLineup } } });
+                    stateManager.updateDaily({ 
+                        tournament: { 
+                            ...daily.tournament, 
+                            mode110: { ...daily.tournament.mode110, lineup: newLineup, macroTeams: { A: groupA, B: groupB } } 
+                        } 
+                    });
                 });
 
                 this.lineup110Container.addEventListener('input', (e) => {
@@ -798,7 +936,7 @@
                         const index = e.target.dataset.index;
                         const team = e.target.dataset.team;
                         const daily = stateManager.getDaily();
-                        const lineup = [...(daily.tournament.mode110.lineup || Array(10).fill({a: '', b: ''}))];
+                        const lineup = [...(daily.tournament.mode110.lineup || Array(10).fill({a: '', aLevel: '', b: '', bLevel: ''}))];
                         lineup[index] = { ...lineup[index], [team]: e.target.value };
                         
                         stateManager.state.daily[stateManager.state.currentDate].tournament.mode110.lineup = lineup;
@@ -839,41 +977,93 @@
             },
 
             renderMembers(members, attendance) {
-                const presentCount = members.filter(m => attendance[m.id]).length;
+                const daily = stateManager.getDaily();
+                const guests = daily.guests || {};
+                const details = daily.guestDetails || {};
+                
+                let presentCount = 0;
+                let totalGuests = 0;
+                members.forEach(m => {
+                    if (attendance[m.id]) {
+                        presentCount++;
+                    }
+                    // Tính cả khách do thành viên vắng mặt bảo lãnh (nếu có)
+                    totalGuests += (guests[m.id] || 0);
+                });
+
                 this.statTotal.textContent = members.length;
-                this.statPresent.textContent = presentCount;
+                this.statPresent.innerHTML = `
+                    <div class="flex items-center justify-center gap-1">
+                        <span>${presentCount + totalGuests}</span> 
+                        <i class="fa-solid fa-user-check text-xs"></i>
+                    </div>
+                    <span class="text-[10px] block font-normal text-gray-500 dark:text-gray-400 mt-0.5">(Đã gồm ${totalGuests} khách)</span>
+                `;
 
                 this.memberList.innerHTML = members.map(m => {
                     const isPresent = attendance[m.id];
+                    const guestCount = guests[m.id] || 0;
+                    const mDetails = details[m.id] || [];
+                    
                     return `
-                    <div class="member-item flex items-center justify-between bg-white dark:bg-darkcard p-3 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 transition-colors" data-id="${m.id}">
-                        <div class="flex-1 flex gap-2 items-center mr-2">
-                            <i class="fa-solid fa-grip-vertical text-gray-300 mr-1"></i>
-                            <input type="text" value="${m.name}" class="input-name font-bold bg-transparent w-full focus:bg-gray-50 dark:focus:bg-gray-700 outline-none p-1 rounded min-h-[40px]" placeholder="Tên...">
-                            <select class="select-gender bg-gray-100 dark:bg-gray-700 rounded p-1 text-xs outline-none min-h-[40px]">
-                                <option value="M" ${m.gender === 'M' ? 'selected' : ''}>Nam</option>
-                                <option value="F" ${m.gender === 'F' ? 'selected' : ''}>Nữ</option>
-                            </select>
-                            <select class="select-level bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-bold rounded p-1 text-xs outline-none min-h-[40px]">
-                                ${['A','B','C','D'].map(l => `<option value="${l}" ${m.level === l ? 'selected' : ''}>Level ${l}</option>`).join('')}
-                            </select>
-                        </div>
-                        <div class="flex items-center gap-3">
-                            <div class="relative inline-block w-12 align-middle select-none transition duration-200 ease-in">
-                                <input type="checkbox" class="toggle-present toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer min-h-[24px]" ${isPresent ? 'checked' : ''}/>
-                                <label class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                    <div class="member-item bg-white dark:bg-darkcard rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 transition-colors" data-id="${m.id}">
+                        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 gap-2">
+                            <div class="flex-1 flex gap-2 items-center w-full">
+                                <i class="fa-solid fa-grip-vertical text-gray-300 mr-1 flex-shrink-0"></i>
+                                <input type="text" value="${m.name}" class="input-name font-bold bg-transparent flex-1 focus:bg-gray-50 dark:focus:bg-gray-700 outline-none p-1 rounded min-h-[40px] min-w-0" placeholder="Tên...">
+                                <select class="select-gender bg-gray-100 dark:bg-gray-700 rounded p-1 text-xs outline-none min-h-[40px] flex-shrink-0">
+                                    <option value="M" ${m.gender === 'M' ? 'selected' : ''}>Nam</option>
+                                    <option value="F" ${m.gender === 'F' ? 'selected' : ''}>Nữ</option>
+                                </select>
+                                <select class="select-level bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-bold rounded p-1 text-xs outline-none min-h-[40px] flex-shrink-0">
+                                    ${['A','B','C','D'].map(l => `<option value="${l}" ${m.level === l ? 'selected' : ''}>Level ${l}</option>`).join('')}
+                                </select>
                             </div>
-                            <button class="btn-delete-member text-gray-400 hover:text-danger p-2 h-10 w-10 flex items-center justify-center rounded">
-                                <i class="fa-solid fa-trash"></i>
-                            </button>
+                            <div class="flex items-center gap-3 w-full sm:w-auto justify-end border-t sm:border-0 border-gray-100 dark:border-gray-800 pt-2 sm:pt-0">
+                                <select class="select-guest bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 font-bold rounded p-1 text-xs outline-none min-h-[32px] flex-shrink-0">
+                                    <option value="0" ${guestCount === 0 ? 'selected' : ''}>+0 Khách</option>
+                                    <option value="1" ${guestCount === 1 ? 'selected' : ''}>+1 Khách</option>
+                                    <option value="2" ${guestCount === 2 ? 'selected' : ''}>+2 Khách</option>
+                                    <option value="3" ${guestCount === 3 ? 'selected' : ''}>+3 Khách</option>
+                                </select>
+                                <div class="relative inline-block w-12 align-middle select-none transition duration-200 ease-in flex-shrink-0">
+                                    <input type="checkbox" class="toggle-present toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer min-h-[24px]" ${isPresent ? 'checked' : ''}/>
+                                    <label class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+                                </div>
+                                <button class="btn-delete-member text-gray-400 hover:text-danger p-2 h-10 w-10 flex items-center justify-center rounded flex-shrink-0">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </div>
                         </div>
+                        ${guestCount > 0 ? `
+                        <div class="bg-purple-50/50 dark:bg-purple-900/10 border-t border-purple-100 dark:border-purple-800/50 p-2 rounded-b-xl flex flex-col gap-2">
+                            ${Array.from({length: guestCount}).map((_, i) => {
+                                const detail = mDetails[i] || {gender: 'M', level: 'C'};
+                                return `
+                                <div class="flex justify-end items-center gap-2 pl-8">
+                                    <span class="text-[10px] text-purple-600 dark:text-purple-400 font-bold w-12 text-right">Khách ${i+1}</span>
+                                    <select class="guest-gender bg-white dark:bg-gray-700 border border-purple-100 dark:border-gray-600 rounded p-1 text-xs outline-none shadow-sm" data-host="${m.id}" data-index="${i}">
+                                        <option value="M" ${detail.gender === 'M' ? 'selected' : ''}>Nam</option>
+                                        <option value="F" ${detail.gender === 'F' ? 'selected' : ''}>Nữ</option>
+                                    </select>
+                                    <select class="guest-level bg-white dark:bg-gray-700 border border-purple-100 dark:border-gray-600 rounded p-1 text-xs outline-none shadow-sm font-bold text-blue-600 dark:text-blue-400" data-host="${m.id}" data-index="${i}">
+                                        <option value="A" ${detail.level === 'A' ? 'selected' : ''}>Lv A</option>
+                                        <option value="B" ${detail.level === 'B' ? 'selected' : ''}>Lv B</option>
+                                        <option value="C" ${detail.level === 'C' ? 'selected' : ''}>Lv C</option>
+                                        <option value="D" ${detail.level === 'D' ? 'selected' : ''}>Lv D</option>
+                                    </select>
+                                </div>
+                                `;
+                            }).join('')}
+                        </div>
+                        ` : ''}
                     </div>
                 `}).join('');
             },
 
             renderPairs(members, daily) {
-                const presentCount = members.filter(m => daily.attendance[m.id]).length;
-                this.matchPresentCount.textContent = `${presentCount} người khả dụng`;
+                const poolLength = this.getMatchPool().length;
+                this.matchPresentCount.textContent = `${poolLength} người khả dụng`;
 
                 const pairs = daily.pairs;
                 if(!pairs || pairs.length === 0) {
@@ -928,13 +1118,32 @@
                 
                 this.history110List.innerHTML = tournament.mode110.history.map(h => `<li class="py-1 border-b border-dashed dark:border-gray-700 last:border-0">${h}</li>`).join('') || '<li class="text-gray-400 italic">Chưa có lịch sử.</li>';
 
-                const lineup = tournament.mode110.lineup || Array(10).fill({a: '', b: ''});
+                const macroTeams = tournament.mode110.macroTeams;
+                if (macroTeams && macroTeams.A.length > 0) {
+                    this.macroTeamsContainer.classList.remove('hidden');
+                    
+                    const playersA = macroTeams.A.flatMap(p => p.players).filter(Boolean);
+                    const playersB = macroTeams.B.flatMap(p => p.players).filter(Boolean);
+
+                    this.listTeamA.innerHTML = playersA.map(p => `<li class="flex justify-between items-center border-b border-dashed border-blue-200 dark:border-blue-800/50 pb-1 last:border-0"><span>${p.name}</span> <span class="text-[10px] text-gray-500 font-normal">Lv ${p.level}</span></li>`).join('');
+                    this.listTeamB.innerHTML = playersB.map(p => `<li class="flex justify-between items-center border-b border-dashed border-red-200 dark:border-red-800/50 pb-1 last:border-0"><span>${p.name}</span> <span class="text-[10px] text-gray-500 font-normal">Lv ${p.level}</span></li>`).join('');
+                } else {
+                    this.macroTeamsContainer.classList.add('hidden');
+                }
+
+                const lineup = tournament.mode110.lineup || Array(10).fill({a: '', aLevel: '', b: '', bLevel: ''});
                 this.lineup110Container.innerHTML = lineup.map((l, i) => `
                     <div class="flex items-center gap-1 sm:gap-2 mb-2">
                         <span class="text-[10px] sm:text-xs font-bold w-4 sm:w-5 text-gray-500 text-right flex-shrink-0">#${i+1}</span>
-                        <input type="text" data-index="${i}" data-team="a" value="${l.a}" class="input-lineup flex-1 min-w-0 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded p-1.5 sm:p-2 text-xs font-bold outline-none focus:border-primary" placeholder="Đội A...">
+                        <div class="relative flex-1 min-w-0">
+                            <input type="text" data-index="${i}" data-team="a" value="${l.a}" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded p-1.5 sm:p-2 text-xs font-bold outline-none focus:border-primary pr-8" placeholder="Đội A...">
+                            ${l.aLevel ? `<span class="absolute right-1.5 top-1/2 -translate-y-1/2 text-[9px] bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 px-1 rounded select-none pointer-events-none">${l.aLevel}</span>` : ''}
+                        </div>
                         <span class="text-[10px] sm:text-xs text-gray-400 italic flex-shrink-0">vs</span>
-                        <input type="text" data-index="${i}" data-team="b" value="${l.b}" class="input-lineup flex-1 min-w-0 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded p-1.5 sm:p-2 text-xs font-bold outline-none focus:border-danger" placeholder="Đội B...">
+                        <div class="relative flex-1 min-w-0">
+                            <input type="text" data-index="${i}" data-team="b" value="${l.b}" class="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded p-1.5 sm:p-2 text-xs font-bold outline-none focus:border-danger pr-8" placeholder="Đội B...">
+                            ${l.bLevel ? `<span class="absolute right-1.5 top-1/2 -translate-y-1/2 text-[9px] bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 px-1 rounded select-none pointer-events-none">${l.bLevel}</span>` : ''}
+                        </div>
                     </div>
                 `).join('');
 
@@ -980,23 +1189,46 @@
                 this.feeInputs[2].value = daily.fees.water;
                 this.feeInputs[3].value = daily.fees.other;
 
-                const presentMembers = members.filter(m => daily.attendance[m.id]);
-                const calc = Logic.calculateBilling(daily.fees, presentMembers.length);
+                // Lọc ra danh sách những người phải thu tiền: Có mặt HOẶC (Vắng mặt nhưng có dắt khách đến)
+                const billedMembers = members.filter(m => daily.attendance[m.id] || (daily.guests[m.id] > 0));
+                
+                let totalPeople = 0;
+                billedMembers.forEach(m => {
+                    if (daily.attendance[m.id]) totalPeople++;
+                    totalPeople += (daily.guests[m.id] || 0);
+                });
+
+                const calc = Logic.calculateBilling(daily.fees, totalPeople);
                 
                 this.billTotal.textContent = calc.total.toLocaleString();
-                this.billPeopleCount.textContent = presentMembers.length;
+                this.billPeopleCount.textContent = totalPeople;
                 this.billPerPerson.textContent = Math.round(calc.perPerson).toLocaleString() + 'đ';
 
-                if(presentMembers.length === 0) {
-                    this.billingList.innerHTML = `<div class="text-gray-400 italic">Không có ai điểm danh vào ngày này.</div>`;
+                if(billedMembers.length === 0) {
+                    this.billingList.innerHTML = `<div class="text-gray-400 italic">Không có ai điểm danh hoặc có khách vào ngày này.</div>`;
                     return;
                 }
 
-                this.billingList.innerHTML = presentMembers.map(m => {
+                this.billingList.innerHTML = billedMembers.map(m => {
                     const hasPaid = daily.payments[m.id];
+                    const guestCount = daily.guests[m.id] || 0;
+                    
+                    // Người đó nếu nghỉ thì số người tính tiền bản thân = 0, nếu có mặt = 1. Sau đó cộng thêm số khách mang theo.
+                    const multiplier = (daily.attendance[m.id] ? 1 : 0) + guestCount;
+                    const amountToPay = Math.round(calc.perPerson * multiplier);
+
                     return `
                     <label class="flex items-center justify-between p-3 border border-gray-100 dark:border-gray-800 rounded-lg bg-gray-50 dark:bg-gray-800/50 cursor-pointer ${hasPaid ? 'border-primary bg-green-50 dark:bg-green-900/20' : ''}">
-                        <span class="font-bold text-sm ${hasPaid ? 'text-primary' : ''}">${m.name}</span>
+                        <div>
+                            <div class="font-bold text-sm ${hasPaid ? 'text-primary' : ''}">
+                                ${m.name} 
+                                ${!daily.attendance[m.id] ? `<span class="text-[10px] text-red-500 ml-1">(Nghỉ)</span>` : ''}
+                                ${guestCount > 0 ? `<span class="text-[10px] text-purple-600 dark:text-purple-400 ml-1">(+${guestCount} khách)</span>` : ''}
+                            </div>
+                            <div class="text-xs font-bold mt-1 ${hasPaid ? 'text-primary' : 'text-gray-600 dark:text-gray-300'}">
+                                Phải đóng: ${amountToPay.toLocaleString()}đ
+                            </div>
+                        </div>
                         <div class="flex items-center gap-2">
                             <span class="text-xs font-semibold ${hasPaid ? 'text-primary' : 'text-danger'}">${hasPaid ? 'ĐÃ LÚA' : 'CHƯA ĐÓNG'}</span>
                             <input type="checkbox" data-id="${m.id}" class="toggle-paid w-6 h-6 accent-primary" ${hasPaid ? 'checked' : ''}>
@@ -1030,7 +1262,7 @@
                 let { scoreA, scoreB, history, lineup } = daily.tournament.mode110;
                 if(team === 'A') scoreA = Math.max(0, scoreA + delta);
                 if(team === 'B') scoreB = Math.max(0, scoreB + delta);
-                stateManager.updateDaily({ tournament: { ...daily.tournament, mode110: { scoreA, scoreB, history, lineup } } });
+                stateManager.updateDaily({ tournament: { ...daily.tournament, mode110: { ...daily.tournament.mode110, scoreA, scoreB, history, lineup } } });
             },
 
             handlePlayerClick(pairIdx, slotIdx) {
